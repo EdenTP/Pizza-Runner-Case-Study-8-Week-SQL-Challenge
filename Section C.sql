@@ -118,8 +118,9 @@ with ing_table as (
     co.customer_id, 
     co.pizza_id, 
     pr.toppings, 
-    CASE WHEN TRIM(exclusions) = 'null' THEN '' WHEN TRIM(exclusions) = '' THEN '' WHEN TRIM(exclusions) IS NULL THEN '' else exclusions END as exclusions_c, 
+    CASE WHEN TRIM(exclusions) = 'null' THEN '' WHEN TRIM(exclusions) = '' THEN '' WHEN TRIM(exclusions) IS NULL THEN '' else exclusions END as exclusions_a, 
     CASE WHEN TRIM(extras) = 'null' THEN '' WHEN TRIM(extras) = '' THEN '' WHEN TRIM(extras) IS NULL THEN '' else extras END as extras_c, 
+    '|' || replace(exclusions_a, ', ', '||')|| '|' as exclusions_c, 
     ROW_NUMBER() over (
       order by 
         1
@@ -132,9 +133,9 @@ with ing_table as (
 ingredient_long as (
   select 
     CustomerPizzaID, 
-    trim(split_ing.value) as ingredient, 
+    '|' || trim(split_ing.value)|| '|' as ingredient_c, 
     exclusions_c, 
-    contains(exclusions_c, ingredient) as excluded 
+    contains(exclusions_c, ingredient_c) as excluded 
   from 
     ing_table 
     left join lateral split_to_table(all_ingredients, ',') as split_ing 
@@ -144,7 +145,7 @@ ingredient_long as (
 Pizza_Topping_Names as (
   select 
     CustomerPizzaID, 
-    ingredient :: int as ingredient, 
+    trim(ingredient_c, '|') :: int as ingredient, 
     pt.topping_name 
   from 
     ingredient_long 
@@ -198,7 +199,8 @@ with ing_table as (
     co.customer_id, 
     co.pizza_id, 
     pr.toppings, 
-    CASE WHEN TRIM(exclusions) = 'null' THEN '' WHEN TRIM(exclusions) = '' THEN '' WHEN TRIM(exclusions) IS NULL THEN '' else exclusions END as exclusions_c, 
+    CASE WHEN TRIM(exclusions) = 'null' THEN '' WHEN TRIM(exclusions) = '' THEN '' WHEN TRIM(exclusions) IS NULL THEN '' else exclusions END as exclusions_a, 
+    '|' || replace(exclusions_a, ', ', '||')|| '|' as exclusions_c, 
     CASE WHEN TRIM(extras) = 'null' THEN '' WHEN TRIM(extras) = '' THEN '' WHEN TRIM(extras) IS NULL THEN '' else extras END as extras_c, 
     ROW_NUMBER() over (
       order by 
@@ -219,7 +221,10 @@ ingredient_long as (
     CustomerPizzaID, 
     trim(split_ing.value) as ingredient, 
     exclusions_c, 
-    contains(exclusions_c, ingredient) as excluded 
+    contains(
+      exclusions_c, 
+      '|' || trim(split_ing.value)|| '|'
+    ) as excluded 
   from 
     ing_table 
     left join lateral split_to_table(all_ingredients, ',') as split_ing 
